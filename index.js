@@ -11,6 +11,7 @@ var mkdir = Promise.promisify(fs.mkdir);
 var setWallpaper = Promise.promisify(wallpaper.set);
 var osenv = require('osenv');
 var path = require('path');
+var util = require('util');
 
 function getBingJsonUrl(locale) {
     return baseUrl + 'HPImageArchive.aspx?format=js&idx=0&n=1&mkt=' + locale;
@@ -32,8 +33,8 @@ function getTargetDir() {
     return path.join(osenv.home(), storageFolderName);
 }
 
-function getTargetFilePath() {
-    return path.join(getTargetDir(), 'daily-bing.png');
+function getTargetFilePath(date, locale) {
+    return path.join(getTargetDir(), util.format('daily-bing_%s_%s.png', date, locale));
 }
 
 function getDefaultOptions() {
@@ -69,6 +70,7 @@ function run(options) {
             return JSON.parse(response.body);
         })
         .then(function(payload) {
+            options['startdate'] = payload.images[0].startdate;
             return baseUrl + payload.images[0].url;
         })
         .then(function(imgUrl) {
@@ -86,7 +88,7 @@ function run(options) {
                     resolver.reject(res);
                 }
             })
-            .pipe(fs.createWriteStream(path.join(getTargetFilePath())))
+            .pipe(fs.createWriteStream(path.join(getTargetFilePath(options.startdate, options.locale))))
             .on('error', function () {
                 resolver.reject("failed to write local file.");
             })
